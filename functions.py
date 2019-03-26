@@ -1,6 +1,7 @@
 import torch
 from utils import Conv2d
 import copy
+from numpy import pi
 
 # 2D parabolic function
 class SquareFunction(torch.nn.Module):
@@ -23,6 +24,31 @@ class SquareFunction(torch.nn.Module):
         self.num_eval_calls += 1;
         if self.constraint(x):
             f = torch.transpose(x, 0, -1)@((self.Q@x)/2 + self.c);
+            return f;
+        else:
+            return torch.inf;
+        
+class GaussianMix(torch.nn.Module):
+    def __init__(self, mu1 = torch.FloatTensor([-0.5,-0.5]),mu2 = torch.FloatTensor([0.5,0.5]),sigma = torch.FloatTensor([[0.3,0.], [0.,0.3]])):
+        super(GaussianMix, self).__init__()
+        self.num_eval_calls = 0;
+        self.mu1 = mu1;
+        self.mu2 = mu2;
+        self.sigma = sigma
+        self.x_min = mu2;
+        self.fun_min = self.forward(self.x_min);
+        self.x = torch.nn.Parameter(torch.rand(2));
+        
+    def constraint(self, x):
+        return True;
+    
+    def forward_parameter(self):
+        return self.forward(self.x);
+    
+    def forward(self, x):
+        self.num_eval_calls += 1;
+        if self.constraint(x):
+            f = (-(1/(((2*pi)**2)*torch.det(self.sigma))**0.5)*torch.exp(-0.5*torch.transpose((x-self.mu1), 0, -1)@torch.inverse(self.sigma)@(x-self.mu1)))+1.5*(-(1/(((2*pi)**2)*torch.det(self.sigma))**0.5)*torch.exp(-0.5*torch.transpose(x-self.mu2, 0, -1)@torch.inverse(self.sigma)@(x-self.mu2)))
             return f;
         else:
             return torch.inf;
